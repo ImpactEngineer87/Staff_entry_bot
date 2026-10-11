@@ -1,12 +1,12 @@
 # Staff Entry Bot
 
-**Version 1.1.0 adds a standalone Windows EXE build.** Double-click
+**Version 1.1.1 adds JSON data input to the standalone Windows EXE.** Double-click
 `build_exe_windows.bat` to create `dist/StaffEntryBot.exe`, or download a build
 from **Actions → Windows EXE → Artifacts**. For the complete package list,
-offline build instructions, and the current Python 3.12 installer / Python
-3.13 wheelhouse mismatch, read [BUILD_EXE.md](BUILD_EXE.md).
+offline build instructions, and Python 3.13 installer/package compatibility,
+read [BUILD_EXE.md](BUILD_EXE.md).
 
-A local Python desktop app that reads staff data from Notepad, Word, or Excel,
+A local Python desktop app that reads staff data from Notepad, Word, Excel, or JSON,
 turns each record into text fields, and pastes those fields into the window you
 point at. No fixed employee schema and no database credentials are required.
 
@@ -18,9 +18,9 @@ practice form, then one record in your real system.
 
 ## Quick start on Windows
 
-1. Install **64-bit CPython 3.12** from https://www.python.org/downloads/.
+1. Install **64-bit CPython 3.13** from https://www.python.org/downloads/.
    Include pip, the Python launcher, and Tcl/Tk. Python 3.11+ is supported;
-   development checks were run on Python 3.12.
+   the Windows EXE and bundled offline packages use Python 3.13 x64.
 2. Unzip this project into a writable folder.
 3. While connected, run `install_online_windows.bat`.
 4. Run `run_windows.bat`.
@@ -92,6 +92,7 @@ sample preview, import settings, destination, activity, and compact layouts.
 | --- | --- |
 | `.txt` | One nonblank line per record; spaces separate fields by default |
 | `.csv`, `.tsv` | Choose comma or tab; GUI Browse selects the matching separator |
+| `.json` | An array of flat objects or rows, one flat object, or a `records` wrapper; all values become text |
 | `.docx` paragraphs | One nonblank paragraph line per record; selected text separator |
 | `.docx` tables | One table row per record, one cell per field, in document body order |
 | `.xlsx`, `.xlsm` | One worksheet row per record, one cell per field; macros are not executed |
@@ -109,6 +110,31 @@ Notepad/Word example:
 Each line above has four fields. Double quotes keep spaces inside a field;
 `""` represents an empty field, and doubled quotes inside a quoted field
 represent a literal quote. Ordinary apostrophes and Windows backslashes survive.
+
+JSON example (`examples/staff.json`):
+
+```json
+[
+  {"employee_id": "001", "full_name": "Mary Jane", "department": "Accounting", "email": "mary@example.com"},
+  {"employee_id": "002", "full_name": "John O'Neil", "department": "Engineering", "email": "john@example.com"}
+]
+```
+
+For JSON objects, the first record defines the field order. Every later record
+must have the same field names; its key order may differ. The preview notes show
+the numbered fields. Use **Field order** (for example `2,1,4`) to match your form.
+An array of arrays uses each row's value order instead. A single flat object
+is one record; `{"records": [...]}` also works, with wrapper metadata ignored.
+
+Strings keep their exact contents, `null` becomes an empty field, and booleans
+become `TRUE`/`FALSE`. Numbers become text without floating-point rounding.
+Quote employee IDs such as `"001"` to preserve leading zeros. Use `null` for
+missing values while retaining the field name. Nested objects/arrays, duplicate
+keys, and nonfinite numbers block import. JSON strings containing spaces do
+not need another delimiter; **Text separator** is ignored for JSON files.
+Leave **First row is a header** unchecked for object records. For arrays of
+rows, it can skip a header row. JSON parsing uses Python's built-in `json` and
+`decimal` modules and requires no additional package.
 
 For unquoted full names, choose another separator, for example `|`:
 

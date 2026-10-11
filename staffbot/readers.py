@@ -3,10 +3,12 @@ from __future__ import annotations
 
 import csv
 import io
+import json
 import math
 import re
 from dataclasses import dataclass, field
 from datetime import date, datetime, time
+from decimal import Decimal
 from pathlib import Path
 
 
@@ -62,7 +64,7 @@ class Dataset:
 
 
 def generic_text(value, number_format: str = "General") -> str:
-    """Keep source strings; stringify other Excel values without schema guessing."""
+    """Keep source strings; stringify other file values without schema guessing."""
     if value is None:
         return ""
     if isinstance(value, str):
@@ -160,6 +162,66 @@ def _dependency(module: str, package: str):
         return importlib.import_module(module)
     except ImportError as exc:
         raise InputError(f"Missing package {package}. Run the setup script first.") from exc
+
+
+def _json(path: Path, options: ParseOptions) -> Dataset:
+    text, encoding = read_text(path, options.encoding)
+
+    def unique_object(pairs):
+        result = {}
+        for key, value in pairs:
+            if key in result:
+                raise InputError(f"Duplicate JSON key {key!r}. Use each field name once.")
+            result[key] = value
+        return result
+
+    def reject_constant(value):
+        raise InputError(f"Invalid JSON number {value}. Use a finite number or null.")
+
+    try:
+        payload = json.loads(text, object_pairs_hook=unique_object,
+                             parse_float=Decimal, parse_constant=reject_constant)
+    except json.JSONDecodeError as exc:
+        raise InputError(f"Invalid JSON at line {exc.lineno}, column {exc.colno}: {exc.msg}.") from exc
+    except RecursionError as exc:
+        raise InputError("JSON is nested too deeply. Use flat staff records.") from exc
+    warnings = [f"JSON encoding: {encoding}."]
+    if isinstance(payload, dict):
+        if isinstance(payload.get("records"), list):
+            if len(payload) > 1:
+                warnings.append('Only the "records" array is imported; wrapper metadata is ignored.')
+            payload = payload["records"]
+        else:
+            payload = [payload]
+    if not isinstance(payload, list):
+        raise InputError('JSON must contain an array of objects or rows, a single flat object, '
+                         'or {"records": [...]}.')
+    keys = tuple(payload[0]) if payload and isinstance(payload[0], dict) else None
+    if keys is not None:
+        warnings.append("JSON field order: " + ", ".join(
+            f"{index}={json.dumps(key, ensure_ascii=False)}" for index, key in enumerate(keys, 1)) + ".")
+    rows = []
+    for index, record in enumerate(payload, 1):
+        source = f"JSON record {index}"
+        if keys is not None:
+            if not isinstance(record, dict):
+                raise InputError(f"{source}: use objects for every record; do not mix objects and rows.")
+            if set(record) != set(keys):
+                missing = sorted(set(keys) - set(record))
+                extra = sorted(set(record) - set(keys))
+                raise InputError(f"{source}: field names must match the first record. "
+                                 f"Missing: {missing}; extra: {extra}. Use null for an empty field.")
+            values = [record[key] for key in keys]
+        else:
+            if not isinstance(record, list):
+                raise InputError(f"{source}: use an array of objects or an array of rows; do not mix them.")
+            values = record
+        for column, value in enumerate(values, 1):
+            if isinstance(value, (dict, list)):
+                raise InputError(f"{source}, field {column}: nested objects and arrays are not fields. "
+                                 "Use text, a number, true/false, or null.")
+        rows.append(Record(source, tuple(generic_text(value) for value in values)))
+    return Dataset(rows, warnings)
 
 
 def _docx(path: Path, options: ParseOptions) -> Dataset:
@@ -272,6 +334,8 @@ def load_file(path: str | Path, options: ParseOptions = ParseOptions()) -> Datas
     if extension in (".txt", ".csv", ".tsv"):
         text, encoding = read_text(path, options.encoding)
         dataset = Dataset(text_records(text, options), [f"Text encoding: {encoding}."])
+    elif extension == ".json":
+        dataset = _json(path, options)
     elif extension == ".docx":
         dataset = _docx(path, options)
     elif extension in (".xlsx", ".xlsm"):
@@ -281,7 +345,7 @@ def load_file(path: str | Path, options: ParseOptions = ParseOptions()) -> Datas
     elif extension == ".doc":
         raise InputError("Legacy .doc is not supported. Save it as .docx in Word or LibreOffice first.")
     else:
-        raise InputError("Choose a TXT, CSV, TSV, DOCX, XLSX, XLSM, or XLS file.")
+        raise InputError("Choose a TXT, CSV, TSV, JSON, DOCX, XLSX, XLSM, or XLS file.")
     if options.skip_header and dataset.records:
         dataset.records = dataset.records[1:]
     if options.columns:

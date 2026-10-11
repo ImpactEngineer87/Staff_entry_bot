@@ -18,7 +18,7 @@ def run_self_test(report: Path | None = None) -> int:
     try:
         root = resource_root()
         for filename, options in [("staff_spaces.txt", ParseOptions()), ("staff.docx", ParseOptions()),
-                                   ("staff.xlsx", ParseOptions(skip_header=True))]:
+                                   ("staff.xlsx", ParseOptions(skip_header=True)), ("staff.json", ParseOptions())]:
             dataset = load_file(root / "examples" / filename, options)
             dataset.validate()
             if len(dataset.records) != 3 or dataset.width != 4:
@@ -56,6 +56,11 @@ def run_self_test(report: Path | None = None) -> int:
                 if application.dataset is None:
                     raise ValueError("Packaged sample preview failed")
                 result["checks"]["workspace_gui"] = "constructed and sample preview loaded"
+                application.file.set(str(root / "examples" / "staff.json"))
+                application._preview()
+                if application.dataset is None or application.dataset.records[0].values[0] != "001":
+                    raise ValueError("Packaged JSON preview failed")
+                result["checks"]["workspace_json_preview"] = "passed"
             finally:
                 application._close()
         result["ok"] = True

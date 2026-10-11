@@ -149,6 +149,26 @@ class GuiTests(unittest.TestCase):
         self.assertFalse(self.app.worker.is_alive(), "Mocked automation did not finish")
         self.app._poll()
 
+    def test_json_browse_preview_reorder_and_export(self):
+        path = self.root / "staff.json"
+        path.write_text(json.dumps([{"id": "001", "name": "Mary Jane"},
+                                    {"name": "José García", "id": "002"}]), encoding="utf-8")
+        self.open_dialog.return_value = str(path)
+        self.app._browse()
+        self.assertEqual(self.app.dataset.records[1].values, ("002", "José García"))
+        self.assertIn("*.json", self.open_dialog.call_args.kwargs["filetypes"][0][1])
+        self.assertIn("JSON", self.app.formats_label.cget("text"))
+        self.app.columns.set("2,1")
+        self.app._preview()
+        self.assertEqual(self.app.dataset.records[0].values, ("Mary Jane", "001"))
+        destination = self.root / "from_json.csv"
+        self.save_dialog.return_value = str(destination)
+        self.app._export()
+        with destination.open(encoding="utf-8-sig", newline="") as stream:
+            rows = list(csv.reader(stream))
+        self.assertEqual(rows[1:], [["Mary Jane", "001"], ["José García", "002"]])
+        self.errors.assert_not_called()
+
     def test_start_requires_source_destination_and_desktop(self):
         self.assertEqual(self.app.current_page, "file")
         self.assertTrue(self.app.start_button.instate(["disabled"]))

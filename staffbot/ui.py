@@ -129,7 +129,7 @@ class WorkspaceUI:
                             "desktop_status": "Checking desktop controls…",
                             "status": "Choose a source file to get started.",
                             "source_name": "Choose your source file",
-                            "source_detail": "Spreadsheets, documents and plain text. All in one place.",
+                            "source_detail": "Spreadsheets, documents, JSON and plain text. All in one place.",
                             "row_count": "—", "field_count": "—",
                             "preview_badge": "AWAITING FILE", "activity_count": "0 events",
                             "run_result": "No runs yet", "run_detail": "Your next run will appear here.",
@@ -232,7 +232,7 @@ class WorkspaceUI:
         self.file_entry.grid(row=2, column=0, columnspan=3, sticky="ew", pady=(2, 8))
         self.edit_controls.append((self.file_entry, "normal"))
         self.file_entry.bind("<Return>", lambda event: self._preview())
-        self.formats_label = self._label(source, "TXT  ·  CSV  ·  TSV  ·  WORD  ·  EXCEL", color=C["muted"], size=8)
+        self.formats_label = self._label(source, "TXT  ·  CSV  ·  TSV  ·  JSON  ·  WORD  ·  EXCEL", color=C["muted"], size=8)
         self.formats_label.grid(row=3, column=0, columnspan=3, sticky="w")
         option_bar = tk.Frame(source, background="white")
         option_bar.grid(row=4, column=0, columnspan=3, sticky="ew", pady=(10, 0))
@@ -275,7 +275,9 @@ class WorkspaceUI:
         self._field(self.import_options, 1, 0, "Excel sheet · blank uses the first", self.sheet)
         self._field(self.import_options, 1, 1, "Field order · e.g. 2,1,4", self.columns)
         self.import_expanded = False
-        self._label(settings, "Excel and Word tables use one cell per field.\nLeave field order blank to include every column.",
+        self._label(settings, "Excel and Word tables use one cell per field.\n"
+                    "JSON objects follow the first record's field order; rows follow array order.\n"
+                    "Leave field order blank to include every column.",
                     size=9, color=C["muted"], justify="left").pack(anchor="w", pady=(0, 20))
         self._button(settings, "Done", self._hide_import, "Primary.TButton").pack(anchor="e")
         self.separator.trace_add("write", self._separator_changed)
@@ -634,7 +636,7 @@ class WorkspaceUI:
         name = Path(self.file.get()).name if self.file.get().strip() else "Choose your source file"
         self.source_name.set(name if len(name) < 42 else name[:38] + "…")
         self.source_detail.set("Ready to preview · " + Path(self.file.get()).suffix.upper().lstrip(".") if self.file.get().strip()
-                               else "Spreadsheets, documents and plain text. All in one place.")
+                               else "Spreadsheets, documents, JSON and plain text. All in one place.")
         self.row_count.set("—")
         self.field_count.set("—")
         self.tree.delete(*self.tree.get_children())
@@ -642,7 +644,8 @@ class WorkspaceUI:
         for scrollbar in self.preview_scrollbars:
             scrollbar.grid_remove()
         self.summary.set("Preview the current file and settings to continue.")
-        self.notes.set("Excel and Word tables use one cell per field. Blank field order includes every column.")
+        self.notes.set("Excel and Word tables use one cell per field. JSON uses object fields or row values. "
+                       "Blank field order includes every column.")
         self.preview_badge.set("NEEDS PREVIEW" if self.file.get().strip() else "AWAITING FILE")
         self.badge_label.configure(background="#f2f5f6", foreground=C["muted"])
         if had_preview:
