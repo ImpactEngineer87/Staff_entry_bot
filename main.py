@@ -34,7 +34,7 @@ def startup_error(message: str) -> None:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Read local files and fill a selected desktop form.")
-    parser.add_argument("--preview", metavar="FILE", help="Read data without opening a GUI or sending keystrokes.")
+    parser.add_argument("--preview", metavar="FILE", help="Read TXT, JSON, Word, or Excel data without opening a GUI or sending keystrokes.")
     parser.add_argument("--separator", choices=["whitespace", "tab", "comma", "semicolon", "pipe", "custom"],
                         default="whitespace")
     parser.add_argument("--custom-separator", default="|")

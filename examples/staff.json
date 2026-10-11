@@ -1,0 +1,20 @@
+[
+  {
+    "employee_id": "001",
+    "full_name": "Mary Jane",
+    "department": "Accounting",
+    "email": "mary@example.com"
+  },
+  {
+    "employee_id": "002",
+    "full_name": "John O'Neil",
+    "department": "Engineering",
+    "email": "john@example.com"
+  },
+  {
+    "employee_id": "003",
+    "full_name": "José García",
+    "department": "Operations",
+    "email": "jose@example.com"
+  }
+]

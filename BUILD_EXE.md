@@ -1,4 +1,4 @@
-# Build StaffEntryBot.exe — version 1.1.0
+# Build StaffEntryBot.exe — version 1.1.1
 
 The project now includes a one-file, windowed Windows build. Its output is:
 
@@ -9,7 +9,7 @@ dist/StaffEntryBot.exe
 Copy this EXE to a matching Windows computer and double-click it. Python,
 pip, the wheelhouse, and your Python installer are **not needed to run the
 built EXE**. Your input files remain separate so you can select new TXT,
-DOCX, or Excel files whenever needed. A remote staff system still needs its
+JSON, DOCX, or Excel files whenever needed. A remote staff system still needs its
 own network connection.
 
 ## Build online on your Windows computer
@@ -89,17 +89,18 @@ version or CPU architecture, prepare the build bundle using that matching
 interpreter. The installer rejects an existing virtual environment with a
 different Python major/minor version; choose a fresh `--venv` folder in that case.
 
-### Current installer/package mismatch
+### Matching the saved installer and packages
 
 The repository's current `wheelhouse/offline_manifest.json` identifies
 **Windows AMD64 / CPython 3.13**, including an `lxml` wheel tagged `cp313`.
-The saved Windows installer archive is named `python-3.12.10-amd64.rar`.
-Python 3.12 cannot install the CPython 3.13 lxml wheel.
+The saved Windows installer archive is named `python-3.13.14-amd64.rar`, which
+matches that Python major/minor version and architecture. The saved offline
+build ZIP in `pythoninstaller/` can be extracted into `wheelhouse-build/`.
+JSON input uses built-in modules, so the package requirements are unchanged.
 
-Use a matching Python 3.13 Windows installer, or keep your Python 3.12 installer
-and prepare a new bundle using `py -3.12` instead. Existing uploaded packages
-and installer archives remain in the repository; the update adds a separate
-build-package route without deleting them.
+Python 3.12 cannot install the CPython 3.13 lxml wheel. To build with Python
+3.12 instead, prepare a new bundle using `py -3.12` on the matching Windows
+computer. Existing uploaded packages and installer archives remain available.
 
 ## Build and download through GitHub
 
@@ -108,8 +109,9 @@ The repository includes **Windows EXE** under GitHub Actions. It:
 1. Runs on a Windows x64 runner with Python 3.13.
 2. Installs runtime/build packages and runs the tests.
 3. Prepares the complete offline build dependency folder.
-4. Builds `StaffEntryBot.exe` and runs its packaged-app smoke check.
-5. Uploads two downloadable artifacts:
+4. Verifies installation using only the prepared local build packages.
+5. Builds `StaffEntryBot.exe` and runs its packaged-app smoke check.
+6. Uploads two downloadable artifacts:
    - `StaffEntryBot-Windows-x64`: executable, SHA-256 checksum, smoke-check
      report, and this guide.
    - `StaffEntryBot-offline-build-Windows-x64-Python313`: complete offline
@@ -133,7 +135,7 @@ GitHub builds need internet; running a downloaded EXE does not.
   separate instance and can remain open after the main window closes.
 - Startup errors are shown in a dialog and saved in the user's log folder
   when the EXE has no console.
-- The build invokes `--self-test --report ...`, checking TXT/DOCX/XLSX sample
+- The build invokes `--self-test --report ...`, checking TXT/JSON/DOCX/XLSX sample
   readers, leading zeros, Unicode, dynamic imports, the practice launcher,
   persistent-log routing, and real Tk workspace construction on Windows.
 - A checksum file and `bundle_check.json` are placed alongside the EXE.

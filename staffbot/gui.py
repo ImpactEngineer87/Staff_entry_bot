@@ -66,7 +66,8 @@ class Application(WorkspaceUI, tk.Tk):
         if self.running:
             return
         path = filedialog.askopenfilename(title="Choose staff data", filetypes=[
-            ("Supported data", "*.txt *.docx *.xlsx *.xlsm *.xls *.csv *.tsv"), ("All files", "*.*")], parent=self)
+            ("Supported data", "*.txt *.docx *.xlsx *.xlsm *.xls *.csv *.tsv *.json"),
+            ("JSON data", "*.json"), ("All files", "*.*")], parent=self)
         if path:
             self.file.set(path)
             if Path(path).suffix.lower() == ".csv":
