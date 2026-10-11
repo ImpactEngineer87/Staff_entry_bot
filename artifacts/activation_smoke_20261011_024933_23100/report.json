@@ -1,0 +1,1 @@
+{"sample_data_only": true, "global_listener_installed": false, "cases": [], "passed": false, "error": "RuntimeError: Desktop packages are missing or no desktop is available. Run the setup script.", "owned_bot_closed": true}

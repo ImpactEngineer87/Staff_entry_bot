@@ -1,0 +1,19 @@
+{
+  "separator": "Spaces (quoted names supported)",
+  "custom": "|",
+  "encoding": "auto",
+  "sheet": "",
+  "columns": "",
+  "skip_header": false,
+  "mode": "Form fields",
+  "start_row": "1",
+  "row_limit": "0",
+  "countdown": "3",
+  "field_delay": "0.25",
+  "paste_delay": "0.15",
+  "row_delay": "1",
+  "tab_counts": "",
+  "after_row": "tab,enter",
+  "replace_fields": false,
+  "block_separator": "Tab"
+}

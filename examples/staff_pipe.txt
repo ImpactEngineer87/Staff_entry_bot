@@ -1,0 +1,4 @@
+Employee ID|Full name|Department|Email
+001|Mary Jane|Accounting|mary@example.com
+002|John O'Neil|Engineering|john@example.com
+003|José García|Operations|jose@example.com
