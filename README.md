@@ -1,5 +1,11 @@
 # Staff Entry Bot
 
+**Version 1.1.0 adds a standalone Windows EXE build.** Double-click
+`build_exe_windows.bat` to create `dist/StaffEntryBot.exe`, or download a build
+from **Actions → Windows EXE → Artifacts**. For the complete package list,
+offline build instructions, and the current Python 3.12 installer / Python
+3.13 wheelhouse mismatch, read [BUILD_EXE.md](BUILD_EXE.md).
+
 A local Python desktop app that reads staff data from Notepad, Word, or Excel,
 turns each record into text fields, and pastes those fields into the window you
 point at. No fixed employee schema and no database credentials are required.

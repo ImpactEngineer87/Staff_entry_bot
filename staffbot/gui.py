@@ -12,10 +12,11 @@ from tkinter import filedialog, messagebox, ttk
 from .desktop import PynputBackend
 from .engine import EntryRunner, FocusLost, Journal, RunOptions, Stopped, Target
 from .readers import Dataset, ParseOptions, load_file
+from .runtime import logs_directory, practice_launch, resource_root
 from .ui import WorkspaceUI
 from .ui_theme import PALETTE as C
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = resource_root()
 SEPARATORS = {"Spaces (quoted names supported)": "whitespace", "Tab": "tab", "Comma": "comma",
               "Semicolon": "semicolon", "Pipe |": "pipe", "Custom character": "custom"}
 
@@ -233,7 +234,7 @@ class Application(WorkspaceUI, tk.Tk):
             self._show_page("activity")
             self._message(f"Starting {count} row(s) in the locked destination: '{self.target.title}'.")
             stamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
-            journal = Journal(ROOT / "logs" / f"run_{stamp}.jsonl")
+            journal = Journal(logs_directory(ROOT) / f"run_{stamp}.jsonl")
             def notify(text):
                 self.events.put(("message", text))
                 fraction = ((runner.current_field or 1) - 1) / dataset.width
@@ -385,8 +386,11 @@ class Application(WorkspaceUI, tk.Tk):
         if self.running:
             return
         import subprocess
-        import sys
-        subprocess.Popen([sys.executable, str(ROOT / "demo_form.py")], cwd=ROOT)
+        try:
+            command, directory, environment = practice_launch(ROOT)
+            subprocess.Popen(command, cwd=directory, env=environment)
+        except OSError as exc:
+            self._error("Cannot open practice form", str(exc))
 
     def _close(self):
         with self._capture_lock:
