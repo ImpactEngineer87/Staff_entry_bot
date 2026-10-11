@@ -72,7 +72,7 @@ class OfflineTests(unittest.TestCase):
         self.assertEqual(len(commands), 3)
         self.assertIn("--no-index", commands[1])
         self.assertIn("--find-links", commands[1])
-        self.assertIn(str(self.wheels / "requirements-offline.txt"), commands[1])
+        self.assertIn(str(self.wheels.resolve() / "requirements-offline.txt"), commands[1])
         self.assertEqual(commands[2][-2:], ["pip", "check"])
 
     def build_bundle(self):

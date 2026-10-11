@@ -38,7 +38,7 @@ class RuntimePackagingTests(unittest.TestCase):
                  patch.object(runtime.sys, "executable", executable):
                 command, working, environment = runtime.practice_launch(Path("temporary-extraction"))
             self.assertEqual(command, [executable, "--practice"])
-            self.assertEqual(working, Path(directory))
+            self.assertEqual(working, Path(directory).resolve())
             self.assertEqual(environment["PYINSTALLER_RESET_ENVIRONMENT"], "1")
             self.assertNotIn("demo_form.py", " ".join(command))
 
