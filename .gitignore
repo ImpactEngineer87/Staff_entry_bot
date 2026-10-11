@@ -3,3 +3,7 @@ __pycache__/
 *.pyc
 logs/
 staff_text.csv
+.venv/
+.build-venv/
+build/
+dist/

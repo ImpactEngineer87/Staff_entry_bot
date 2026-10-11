@@ -1,0 +1,52 @@
+name: Windows EXE
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches: [master]
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+          architecture: x64
+      - name: Install runtime and build packages
+        run: python -m pip install --find-links wheelhouse -r requirements-build.txt
+      - name: Verify package dependencies
+        run: python -m pip check
+      - name: Run application and packaging tests
+        run: python -m unittest discover -s tests -v
+      - name: Prepare offline build packages
+        run: python scripts/prepare_offline.py --include-build
+      - name: Verify installation using only offline build packages
+        run: python scripts/install_offline.py --include-build --venv .build-venv
+      - name: Build and check StaffEntryBot.exe
+        run: .build-venv\Scripts\python.exe scripts\build_windows.py
+      - name: Upload portable executable
+        uses: actions/upload-artifact@v7
+        with:
+          name: StaffEntryBot-Windows-x64
+          path: |
+            dist/StaffEntryBot.exe
+            dist/StaffEntryBot.exe.sha256
+            dist/bundle_check.json
+            dist/BUILD_EXE.md
+          if-no-files-found: error
+          retention-days: 90
+      - name: Upload offline EXE build packages
+        uses: actions/upload-artifact@v7
+        with:
+          name: StaffEntryBot-offline-build-Windows-x64-Python313
+          path: wheelhouse-build/
+          if-no-files-found: error
+          retention-days: 90

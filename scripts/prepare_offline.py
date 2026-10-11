@@ -30,19 +30,21 @@ def environment() -> dict:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--wheelhouse", type=Path, default=ROOT / "wheelhouse")
+    parser.add_argument("--wheelhouse", type=Path, default=None)
+    parser.add_argument("--include-build", action="store_true", help="Also collect PyInstaller and EXE build dependencies.")
     args = parser.parse_args()
     if sys.version_info < (3, 11):
-        print("Use Python 3.11 or newer; Python 3.12 is recommended.", file=sys.stderr)
+        print("Use Python 3.11 or newer, matching the offline computer's Python version.", file=sys.stderr)
         return 1
-    directory = args.wheelhouse.resolve()
+    directory = (args.wheelhouse or ROOT / ("wheelhouse-build" if args.include_build else "wheelhouse")).resolve()
     directory.mkdir(parents=True, exist_ok=True)
-    requirements = ROOT / "requirements.txt"
+    requirements = ROOT / ("requirements-build.txt" if args.include_build else "requirements.txt")
     report = directory / "resolution_report.json"
     try:
         print("Collecting every dependency and building installation wheels…", flush=True)
         subprocess.run([sys.executable, "-m", "pip", "wheel", "--wheel-dir", str(directory),
-                        "--prefer-binary", "--retries", "8", "--timeout", "120",
+                        "--prefer-binary", "--find-links", str(ROOT / "wheelhouse"),
+                        "--retries", "8", "--timeout", "120",
                         "--disable-pip-version-check", "-r", str(requirements)], check=True)
         print("Checking that the packages can be resolved with internet disabled…", flush=True)
         subprocess.run([sys.executable, "-m", "pip", "install", "--dry-run", "--ignore-installed",
@@ -53,13 +55,16 @@ def main() -> int:
         lock.write_text("# All runtime dependencies resolved for this computer.\n" + "\n".join(sorted(
             f"{item['metadata']['name']}=={item['metadata']['version']}" for item in resolved)) + "\n",
                         encoding="utf-8")
-        manifest = {"environment": environment(), "requirements_sha256": sha256(requirements),
+        manifest = {"environment": environment(), "requirements_sha256": sha256(ROOT / "requirements.txt"),
+                    "includes_build_tools": args.include_build,
                     "files": {path.name: sha256(path) for path in sorted(directory.glob("*.whl"))}}
         manifest["files"][lock.name] = sha256(lock)
+        if args.include_build:
+            manifest["build_requirements_sha256"] = sha256(requirements)
         (directory / "offline_manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
         report.unlink(missing_ok=True)
         print(f"Offline package folder ready: {directory}\n"
-              "Copy the entire project including wheelhouse to the offline computer.\n"
+              f"Copy the entire project including {directory.name} to the offline computer.\n"
               "Also keep a matching Python installer. Wheels are OS/CPU/Python specific.")
         return 0
     except (subprocess.CalledProcessError, OSError, ValueError, KeyError) as exc:

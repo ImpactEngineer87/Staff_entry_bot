@@ -75,6 +75,45 @@ class OfflineTests(unittest.TestCase):
         self.assertIn(str(self.wheels / "requirements-offline.txt"), commands[1])
         self.assertEqual(commands[2][-2:], ["pip", "check"])
 
+    def build_bundle(self):
+        data = self.bundle()
+        requirements = self.root / "requirements-build.txt"
+        requirements.write_text("-r requirements.txt\npyinstaller==6.22.3\n", encoding="utf-8")
+        data["includes_build_tools"] = True
+        data["build_requirements_sha256"] = prepare_offline.sha256(requirements)
+        (self.wheels / "offline_manifest.json").write_text(json.dumps(data), encoding="utf-8")
+
+    def test_runtime_bundle_cannot_be_used_for_an_exe_build(self):
+        self.bundle()
+        self.args.append("--include-build")
+        result, run = self.run_install()
+        self.assertEqual(result, 1)
+        run.assert_not_called()
+
+    def test_build_bundle_installs_without_a_package_index(self):
+        self.build_bundle()
+        self.args.append("--include-build")
+        result, run = self.run_install()
+        self.assertEqual(result, 0)
+        self.assertIn("--no-index", run.call_args_list[1].args[0])
+
+    def test_changed_build_requirements_are_rejected(self):
+        self.build_bundle()
+        (self.root / "requirements-build.txt").write_text("changed==1.0\n", encoding="utf-8")
+        self.args.append("--include-build")
+        result, run = self.run_install()
+        self.assertEqual(result, 1)
+        run.assert_not_called()
+
+    def test_existing_environment_cannot_mix_python_versions(self):
+        self.bundle()
+        environment = self.root / "env"
+        environment.mkdir()
+        (environment / "pyvenv.cfg").write_text("version = 0.0.1\n", encoding="utf-8")
+        result, run = self.run_install()
+        self.assertEqual(result, 1)
+        run.assert_not_called()
+
     def test_prepare_resolves_transitive_versions_and_records_hashes(self):
         args = ["prepare_offline.py", "--wheelhouse", str(self.wheels)]
 
@@ -97,6 +136,30 @@ class OfflineTests(unittest.TestCase):
         manifest = json.loads((self.wheels / "offline_manifest.json").read_text(encoding="utf-8"))
         self.assertIn("requirements-offline.txt", manifest["files"])
         self.assertFalse((self.wheels / "resolution_report.json").exists())
+
+    def test_build_preparation_locks_build_tools_and_runtime_dependencies(self):
+        self.build_bundle()
+        args = ["prepare_offline.py", "--include-build", "--wheelhouse", str(self.wheels)]
+
+        def fake_run(command, **kwargs):
+            if "--report" in command:
+                path = Path(command[command.index("--report") + 1])
+                path.write_text(json.dumps({"install": [
+                    {"metadata": {"name": "test-package", "version": "1.0"}},
+                    {"metadata": {"name": "pyinstaller", "version": "6.22.3"}},
+                    {"metadata": {"name": "build-dependency", "version": "2.0"}}]}), encoding="utf-8")
+
+        with patch.object(sys, "argv", args), patch.object(prepare_offline, "ROOT", self.root), \
+                patch.object(prepare_offline.subprocess, "run", side_effect=fake_run) as run:
+            self.assertEqual(prepare_offline.main(), 0)
+        self.assertIn(str(self.root / "requirements-build.txt"), run.call_args_list[0].args[0])
+        lock = (self.wheels / "requirements-offline.txt").read_text(encoding="utf-8")
+        self.assertIn("pyinstaller==6.22.3", lock)
+        self.assertIn("build-dependency==2.0", lock)
+        manifest = json.loads((self.wheels / "offline_manifest.json").read_text(encoding="utf-8"))
+        self.assertTrue(manifest["includes_build_tools"])
+        self.assertEqual(manifest["build_requirements_sha256"],
+                         prepare_offline.sha256(self.root / "requirements-build.txt"))
 
 
 if __name__ == "__main__":
